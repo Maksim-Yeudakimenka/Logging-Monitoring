@@ -5,6 +5,8 @@ using System.Web;
 using System.Web.Mvc;
 using System.Web.Optimization;
 using System.Web.Routing;
+using MvcMusicStore.Infrastructure;
+using PerformanceCounterHelper;
 
 namespace MvcMusicStore
 {
@@ -16,6 +18,18 @@ namespace MvcMusicStore
             FilterConfig.RegisterGlobalFilters(GlobalFilters.Filters);
             RouteConfig.RegisterRoutes(RouteTable.Routes);
             BundleConfig.RegisterBundles(BundleTable.Bundles);
+
+            this.InitPerformanceCounters();
+        }
+
+        private void InitPerformanceCounters()
+        {
+            using (var counterHelper = PerformanceHelper.CreateCounterHelper<PerformanceCounters>("MvcMusicStore"))
+            {
+                counterHelper.RawValue(PerformanceCounters.LogInCount, 0);
+                counterHelper.RawValue(PerformanceCounters.LogOutCount, 0);
+                counterHelper.RawValue(PerformanceCounters.HomePageHitCount, 0);
+            }
         }
     }
 }

@@ -4,7 +4,9 @@ using System.Web.Mvc;
 using Microsoft.AspNet.Identity;
 using Microsoft.AspNet.Identity.EntityFramework;
 using Microsoft.Owin.Security;
+using MvcMusicStore.Infrastructure;
 using MvcMusicStore.Models;
+using PerformanceCounterHelper;
 
 namespace MvcMusicStore.Controllers
 {
@@ -22,6 +24,9 @@ namespace MvcMusicStore.Controllers
         private const string XsrfKey = "XsrfId";
 
         private UserManager<ApplicationUser> _userManager;
+
+        private static readonly CounterHelper<PerformanceCounters> CounterHelper =
+            PerformanceHelper.CreateCounterHelper<PerformanceCounters>("MvcMusicStore");
 
         public AccountController()
             : this(new UserManager<ApplicationUser>(new UserStore<ApplicationUser>(new ApplicationDbContext())))
@@ -319,6 +324,8 @@ namespace MvcMusicStore.Controllers
         {
             AuthenticationManager.SignOut();
 
+            CounterHelper.Increment(PerformanceCounters.LogOutCount);
+
             return RedirectToAction("Index", "Home");
         }
 
@@ -358,6 +365,8 @@ namespace MvcMusicStore.Controllers
                 await _userManager.CreateIdentityAsync(user, DefaultAuthenticationTypes.ApplicationCookie);
 
             AuthenticationManager.SignIn(new AuthenticationProperties { IsPersistent = isPersistent }, identity);
+
+            CounterHelper.Increment(PerformanceCounters.LogInCount);
 
             await MigrateShoppingCart(user.UserName);
         }
