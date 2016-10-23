@@ -6,6 +6,7 @@ using Microsoft.AspNet.Identity.EntityFramework;
 using Microsoft.Owin.Security;
 using MvcMusicStore.Infrastructure;
 using MvcMusicStore.Models;
+using NLog;
 using PerformanceCounterHelper;
 
 namespace MvcMusicStore.Controllers
@@ -24,18 +25,20 @@ namespace MvcMusicStore.Controllers
         private const string XsrfKey = "XsrfId";
 
         private UserManager<ApplicationUser> _userManager;
+        private readonly ILogger _logger;
 
         private static readonly CounterHelper<PerformanceCounters> CounterHelper =
             PerformanceHelper.CreateCounterHelper<PerformanceCounters>("MvcMusicStore");
 
-        public AccountController()
-            : this(new UserManager<ApplicationUser>(new UserStore<ApplicationUser>(new ApplicationDbContext())))
+        public AccountController(ILogger logger)
+            : this(new UserManager<ApplicationUser>(new UserStore<ApplicationUser>(new ApplicationDbContext())), logger)
         {
         }
 
-        public AccountController(UserManager<ApplicationUser> userManager)
+        public AccountController(UserManager<ApplicationUser> userManager, ILogger logger)
         {
             _userManager = userManager;
+            _logger = logger;
         }
 
         private IAuthenticationManager AuthenticationManager
@@ -59,6 +62,8 @@ namespace MvcMusicStore.Controllers
         [AllowAnonymous]
         public ActionResult Login(string returnUrl)
         {
+            _logger.PageOpened("Account", "Login");
+
             ViewBag.ReturnUrl = returnUrl;
 
             return View();
@@ -70,6 +75,8 @@ namespace MvcMusicStore.Controllers
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> Login(LoginViewModel model, string returnUrl)
         {
+            _logger.ActionInvoked("Account", "Login");
+
             if (ModelState.IsValid)
             {
                 var user = await _userManager.FindAsync(model.UserName, model.Password);
@@ -90,6 +97,8 @@ namespace MvcMusicStore.Controllers
         [AllowAnonymous]
         public ActionResult Register()
         {
+            _logger.PageOpened("Account", "Register");
+
             return View();
         }
 
@@ -99,6 +108,8 @@ namespace MvcMusicStore.Controllers
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> Register(RegisterViewModel model)
         {
+            _logger.ActionInvoked("Account", "Register");
+
             if (ModelState.IsValid)
             {
                 var user = new ApplicationUser { UserName = model.UserName };
@@ -216,6 +227,8 @@ namespace MvcMusicStore.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult ExternalLogin(string provider, string returnUrl)
         {
+            _logger.ActionInvoked("Account", "ExternalLogin");
+
             return new ChallengeResult(provider,
                 Url.Action("ExternalLoginCallback", "Account", new { ReturnUrl = returnUrl }));
         }
@@ -281,6 +294,8 @@ namespace MvcMusicStore.Controllers
             ExternalLoginConfirmationViewModel model,
             string returnUrl)
         {
+            _logger.ActionInvoked("Account", "ExternalLoginConfirmation");
+
             if (User.Identity.IsAuthenticated)
             {
                 return RedirectToAction("Manage");
@@ -324,6 +339,7 @@ namespace MvcMusicStore.Controllers
         {
             AuthenticationManager.SignOut();
 
+            _logger.LoggedOut();
             CounterHelper.Increment(PerformanceCounters.LogOutCount);
 
             return RedirectToAction("Index", "Home");
@@ -366,6 +382,7 @@ namespace MvcMusicStore.Controllers
 
             AuthenticationManager.SignIn(new AuthenticationProperties { IsPersistent = isPersistent }, identity);
 
+            _logger.LoggedIn(user);
             CounterHelper.Increment(PerformanceCounters.LogInCount);
 
             await MigrateShoppingCart(user.UserName);
