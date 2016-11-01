@@ -245,6 +245,7 @@
     <Content Include="NLog.config">
       <SubType>Designer</SubType>
     </Content>
+    <Content Include="logs\2016-11-01.log" />
     <None Include="NLog.xsd">
       <SubType>Designer</SubType>
     </None>
